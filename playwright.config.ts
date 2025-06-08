@@ -8,8 +8,9 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'https://localhost:3000',
     trace: 'on-first-retry',
+    ignoreHTTPSErrors: true, // 自己署名証明書を許可
   },
 
   projects: [

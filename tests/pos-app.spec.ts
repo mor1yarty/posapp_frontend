@@ -22,13 +22,13 @@ test.describe('POSアプリケーション E2Eテスト', () => {
   });
 
   test('商品検索UI要素が正しく表示される', async ({ page }) => {
-    // 商品コード入力フィールドが存在することを確認
-    const codeInput = page.locator('input[placeholder="商品コードを入力してください"]');
-    await expect(codeInput).toBeVisible();
+    // 商品コード表示エリアが存在することを確認
+    const codeDisplay = page.locator('input[placeholder="② コード表示エリア"]');
+    await expect(codeDisplay).toBeVisible();
     
-    // 読み込みボタンが存在することを確認
-    const loadButton = page.locator('button:has-text("① 読み込み")');
-    await expect(loadButton).toBeVisible();
+    // スキャン（カメラ）ボタンが存在することを確認
+    const scanButton = page.locator('button:has-text("① スキャン（カメラ）")');
+    await expect(scanButton).toBeVisible();
     
     // 購入ボタンが初期状態で無効になっていることを確認
     const purchaseButton = page.locator('button:has-text("⑦ 購入")');
@@ -37,11 +37,11 @@ test.describe('POSアプリケーション E2Eテスト', () => {
 
   test('有効な商品コードで商品検索が動作する', async ({ page }) => {
     // 商品コード入力フィールドに有効なコードを入力
-    const codeInput = page.locator('input[placeholder="商品コードを入力してください"]');
-    await codeInput.fill('4901681101001');
+    const codeInput = page.locator('input[placeholder="② コード表示エリア"]');
+    await codeInput.fill('4901681143115');
     
-    // 読み込みボタンをクリック
-    const loadButton = page.locator('button:has-text("① 読み込み")');
+    // 手動検索ボタンをクリック
+    const loadButton = page.locator('button:has-text("手動検索")');
     await loadButton.click();
     
     // 商品名が表示されることを確認（APIレスポンス待ち）
@@ -66,11 +66,11 @@ test.describe('POSアプリケーション E2Eテスト', () => {
 
   test('無効な商品コードでエラーメッセージが表示される', async ({ page }) => {
     // 無効な商品コード入力
-    const codeInput = page.locator('input[placeholder="商品コードを入力してください"]');
+    const codeInput = page.locator('input[placeholder="② コード表示エリア"]');
     await codeInput.fill('0000000000000');
     
     // 読み込みボタンをクリック
-    const loadButton = page.locator('button:has-text("① 読み込み")');
+    const loadButton = page.locator('button:has-text("手動検索")');
     await loadButton.click();
     
     // エラーメッセージが表示されることを確認
@@ -79,10 +79,10 @@ test.describe('POSアプリケーション E2Eテスト', () => {
 
   test('商品を購入リストに追加できる', async ({ page }) => {
     // 商品検索を実行
-    const codeInput = page.locator('input[placeholder="商品コードを入力してください"]');
-    await codeInput.fill('4901681101001');
+    const codeInput = page.locator('input[placeholder="② コード表示エリア"]');
+    await codeInput.fill('4901681143115');
     
-    const loadButton = page.locator('button:has-text("① 読み込み")');
+    const loadButton = page.locator('button:has-text("手動検索")');
     await loadButton.click();
     
     // 商品情報が表示されるのを待つ
@@ -114,14 +114,14 @@ test.describe('POSアプリケーション E2Eテスト', () => {
 
   test('複数の商品を購入リストに追加できる', async ({ page }) => {
     // 1つ目の商品を追加
-    await page.locator('input[placeholder="商品コードを入力してください"]').fill('4901681101001');
-    await page.locator('button:has-text("① 読み込み")').click();
+    await page.locator('input[placeholder="② コード表示エリア"]').fill('4901681143115');
+    await page.locator('button:has-text("手動検索")').click();
     await expect(page.locator('.info-value').first()).toContainText('サラサクリップ', { timeout: 5000 });
     await page.locator('button:has-text("⑤ 購入リストへ追加")').click();
     
     // 2つ目の商品を追加
-    await page.locator('input[placeholder="商品コードを入力してください"]').fill('4901681101002');
-    await page.locator('button:has-text("① 読み込み")').click();
+    await page.locator('input[placeholder="② コード表示エリア"]').fill('4901681143139');
+    await page.locator('button:has-text("手動検索")').click();
     await expect(page.locator('.info-value').first()).toContainText('サラサクリップ', { timeout: 5000 });
     await expect(page.locator('.info-value').nth(1)).toContainText('レッド');
     await page.locator('button:has-text("⑤ 購入リストへ追加")').click();
@@ -136,8 +136,8 @@ test.describe('POSアプリケーション E2Eテスト', () => {
 
   test('購入処理が正常に実行される', async ({ page }) => {
     // 商品を購入リストに追加
-    await page.locator('input[placeholder="商品コードを入力してください"]').fill('4901681101001');
-    await page.locator('button:has-text("① 読み込み")').click();
+    await page.locator('input[placeholder="② コード表示エリア"]').fill('4901681143115');
+    await page.locator('button:has-text("手動検索")').click();
     await expect(page.locator('.info-value').first()).toContainText('サラサクリップ', { timeout: 5000 });
     await page.locator('button:has-text("⑤ 購入リストへ追加")').click();
     
@@ -145,8 +145,12 @@ test.describe('POSアプリケーション E2Eテスト', () => {
     const purchaseButton = page.locator('button:has-text("⑦ 購入")');
     await purchaseButton.click();
     
-    // 購入完了メッセージが表示されることを確認
-    await expect(page.locator('.success-message')).toContainText('購入処理が完了しました', { timeout: 10000 });
+    // 税表示モーダルが表示されることを確認
+    await expect(page.locator('text=購入完了')).toBeVisible({ timeout: 10000 });
+    
+    // OKボタンをクリック
+    const closeButton = page.locator('button:has-text("OK")');
+    await closeButton.click();
     
     // 購入リストがクリアされることを確認
     await expect(page.locator('.purchase-item')).toHaveCount(0);
@@ -158,8 +162,8 @@ test.describe('POSアプリケーション E2Eテスト', () => {
 
   test('商品削除機能が動作する', async ({ page }) => {
     // 商品を購入リストに追加
-    await page.locator('input[placeholder="商品コードを入力してください"]').fill('4901681101001');
-    await page.locator('button:has-text("① 読み込み")').click();
+    await page.locator('input[placeholder="② コード表示エリア"]').fill('4901681143115');
+    await page.locator('button:has-text("手動検索")').click();
     await expect(page.locator('.info-value').first()).toContainText('サラサクリップ', { timeout: 5000 });
     await page.locator('button:has-text("⑤ 購入リストへ追加")').click();
     
@@ -179,8 +183,8 @@ test.describe('POSアプリケーション E2Eテスト', () => {
   test('同じ商品を複数回追加すると数量が増加する', async ({ page }) => {
     // 同じ商品を2回追加
     for (let i = 0; i < 2; i++) {
-      await page.locator('input[placeholder="商品コードを入力してください"]').fill('4901681101001');
-      await page.locator('button:has-text("① 読み込み")').click();
+      await page.locator('input[placeholder="② コード表示エリア"]').fill('4901681143115');
+      await page.locator('button:has-text("手動検索")').click();
       await expect(page.locator('.info-value').first()).toContainText('サラサクリップ', { timeout: 5000 });
       await page.locator('button:has-text("⑤ 購入リストへ追加")').click();
     }
@@ -200,8 +204,8 @@ test.describe('POSアプリケーション E2Eテスト', () => {
 
   test('文房具商品の詳細情報表示機能テスト', async ({ page }) => {
     // マッキーシリーズの商品をテスト
-    await page.locator('input[placeholder="商品コードを入力してください"]').fill('4901681201001');
-    await page.locator('button:has-text("① 読み込み")').click();
+    await page.locator('input[placeholder="② コード表示エリア"]').fill('4901681502516');
+    await page.locator('button:has-text("手動検索")').click();
     
     // 商品詳細情報が正しく表示されることを確認
     await expect(page.locator('.info-label').first()).toContainText('③ 商品名');
@@ -222,8 +226,8 @@ test.describe('POSアプリケーション E2Eテスト', () => {
 
   test('購入リストの詳細表示テスト', async ({ page }) => {
     // マイルドライナー商品を追加
-    await page.locator('input[placeholder="商品コードを入力してください"]').fill('4901681301001');
-    await page.locator('button:has-text("① 読み込み")').click();
+    await page.locator('input[placeholder="② コード表示エリア"]').fill('4901681400713');
+    await page.locator('button:has-text("手動検索")').click();
     await expect(page.locator('.info-value').first()).toContainText('マイルドライナー', { timeout: 5000 });
     await page.locator('button:has-text("⑤ 購入リストへ追加")').click();
     
@@ -249,15 +253,15 @@ test.describe('POSアプリケーション E2Eテスト', () => {
 
   test('色違い商品の管理テスト', async ({ page }) => {
     // サラサクリップの黒を追加
-    await page.locator('input[placeholder="商品コードを入力してください"]').fill('4901681101001');
-    await page.locator('button:has-text("① 読み込み")').click();
+    await page.locator('input[placeholder="② コード表示エリア"]').fill('4901681143115');
+    await page.locator('button:has-text("手動検索")').click();
     await expect(page.locator('.info-value').first()).toContainText('サラサクリップ', { timeout: 5000 });
     await expect(page.locator('.info-value').nth(1)).toContainText('ブラック');
     await page.locator('button:has-text("⑤ 購入リストへ追加")').click();
     
     // サラサクリップの赤を追加
-    await page.locator('input[placeholder="商品コードを入力してください"]').fill('4901681101002');
-    await page.locator('button:has-text("① 読み込み")').click();
+    await page.locator('input[placeholder="② コード表示エリア"]').fill('4901681143139');
+    await page.locator('button:has-text("手動検索")').click();
     await expect(page.locator('.info-value').first()).toContainText('サラサクリップ', { timeout: 5000 });
     await expect(page.locator('.info-value').nth(1)).toContainText('レッド');
     await page.locator('button:has-text("⑤ 購入リストへ追加")').click();
@@ -278,6 +282,131 @@ test.describe('POSアプリケーション E2Eテスト', () => {
     
     // 合計金額が正しく計算されることを確認
     await expect(page.locator('.total-amount')).toContainText('合計: ¥220');
+  });
+
+  test('JANスキャン機能のUI表示テスト', async ({ page }) => {
+    // スキャン（カメラ）ボタンをクリック
+    const scanButton = page.locator('button:has-text("① スキャン（カメラ）")');
+    await scanButton.click();
+    
+    // バーコードスキャナーコンポーネントが表示されることを確認
+    await expect(page.locator('text=カメラでJANコードをスキャン')).toBeVisible();
+    
+    // 手動入力ボタンが表示されることを確認
+    await expect(page.locator('button:has-text("手動入力")')).toBeVisible();
+    
+    // スキャン停止ボタンが表示されることを確認
+    await expect(page.locator('button:has-text("スキャン停止")')).toBeVisible();
+  });
+
+  test('手動JANコード入力機能テスト', async ({ page }) => {
+    // スキャン（カメラ）ボタンをクリック
+    const scanButton = page.locator('button:has-text("① スキャン（カメラ）")');
+    await scanButton.click();
+    
+    // 手動入力ボタンをクリック
+    const manualButton = page.locator('button:has-text("手動入力")');
+    await manualButton.click();
+    
+    // 手動入力フィールドが表示されることを確認
+    const manualInput = page.locator('input[placeholder="JANコード（8桁または13桁）"]');
+    await expect(manualInput).toBeVisible();
+    
+    // 有効なJANコードを入力
+    await manualInput.fill('4901681143115');
+    
+    // 検索ボタンをクリック
+    const searchButton = page.locator('button:has-text("検索")');
+    await searchButton.click();
+    
+    // 商品情報が表示されることを確認
+    await expect(page.locator('.info-value').first()).toContainText('サラサクリップ', { timeout: 5000 });
+    
+    // スキャナーが自動的に閉じることを確認
+    await expect(page.locator('text=カメラでJANコードをスキャン')).not.toBeVisible();
+  });
+
+  test('手動入力でのバリデーションテスト', async ({ page }) => {
+    // スキャン（カメラ）ボタンをクリック
+    const scanButton = page.locator('button:has-text("① スキャン（カメラ）")');
+    await scanButton.click();
+    
+    // 手動入力ボタンをクリック
+    const manualButton = page.locator('button:has-text("手動入力")');
+    await manualButton.click();
+    
+    // 無効なコード（文字列）を入力
+    const manualInput = page.locator('input[placeholder="JANコード（8桁または13桁）"]');
+    await manualInput.fill('abcd1234');
+    
+    // 入力フィールドが数字のみになることを確認
+    await expect(manualInput).toHaveValue('1234');
+    
+    // 無効なコード（短すぎる）を入力
+    await manualInput.fill('123');
+    
+    // 検索ボタンをクリック
+    const searchButton = page.locator('button:has-text("検索")');
+    await searchButton.click();
+    
+    // アラートが表示されることを確認（JavaScriptアラート）
+    page.on('dialog', dialog => {
+      expect(dialog.message()).toContain('有効なJANコード（8桁または13桁の数字）を入力してください。');
+      dialog.accept();
+    });
+  });
+
+  test('購入完了時の税込・税抜表示テスト', async ({ page }) => {
+    // 商品を購入リストに追加
+    await page.locator('input[placeholder="② コード表示エリア"]').fill('4901681143115');
+    await page.locator('button:has-text("手動検索")').click();
+    await expect(page.locator('.info-value').first()).toContainText('サラサクリップ', { timeout: 5000 });
+    await page.locator('button:has-text("⑤ 購入リストへ追加")').click();
+    
+    // 購入ボタンをクリック
+    const purchaseButton = page.locator('button:has-text("⑦ 購入")');
+    await purchaseButton.click();
+    
+    // 税表示モーダルが表示されることを確認
+    await expect(page.locator('text=購入完了')).toBeVisible({ timeout: 10000 });
+    
+    // 税込金額が表示されることを確認
+    await expect(page.locator('text=税込金額')).toBeVisible();
+    await expect(page.locator('text=¥110')).toBeVisible();
+    
+    // 税抜金額が表示されることを確認
+    await expect(page.locator('text=税抜金額')).toBeVisible();
+    await expect(page.locator('text=¥100')).toBeVisible();
+    
+    // 消費税額が表示されることを確認
+    await expect(page.locator('text=消費税')).toBeVisible();
+    await expect(page.locator('text=¥10')).toBeVisible();
+    
+    // 閉じるボタンをクリック
+    const closeButton = page.locator('button:has-text("閉じる")');
+    await closeButton.click();
+    
+    // モーダルが閉じることを確認
+    await expect(page.locator('text=購入完了')).not.toBeVisible();
+  });
+
+  test('スキャン停止機能テスト', async ({ page }) => {
+    // スキャン（カメラ）ボタンをクリック
+    const scanButton = page.locator('button:has-text("① スキャン（カメラ）")');
+    await scanButton.click();
+    
+    // バーコードスキャナーが表示されることを確認
+    await expect(page.locator('text=カメラでJANコードをスキャン')).toBeVisible();
+    
+    // スキャン停止ボタンをクリック
+    const stopButton = page.locator('button:has-text("スキャン停止")');
+    await stopButton.click();
+    
+    // バーコードスキャナーが非表示になることを確認
+    await expect(page.locator('text=カメラでJANコードをスキャン')).not.toBeVisible();
+    
+    // スキャン（カメラ）ボタンが再び表示されることを確認
+    await expect(scanButton).toBeVisible();
   });
 
 });
