@@ -189,21 +189,22 @@ export default function Home() {
               onKeyPress={(e) => e.key === 'Enter' && searchProduct()}
               readOnly={false}
             />
-            <button 
-              className="button button-primary"
-              onClick={startScanning}
-              disabled={loading}
-              style={{ marginRight: '10px' }}
-            >
-              ① スキャン（カメラ）
-            </button>
-            <button 
-              className="button button-secondary"
-              onClick={() => searchProduct()}
-              disabled={loading}
-            >
-              手動検索
-            </button>
+            <div className="button-group">
+              <button 
+                className="button button-primary"
+                onClick={startScanning}
+                disabled={loading}
+              >
+                ① スキャン（カメラ）
+              </button>
+              <button 
+                className="button button-secondary"
+                onClick={() => searchProduct()}
+                disabled={loading}
+              >
+                手動検索
+              </button>
+            </div>
           </div>
 
           {/* 🆕 インライン バーコードスキャナー */}

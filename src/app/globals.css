@@ -18,7 +18,14 @@ body {
 .container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 16px;
+}
+
+/* スマートフォン対応 */
+@media (max-width: 768px) {
+  .container {
+    padding: 12px;
+  }
 }
 
 .pos-container {
@@ -41,6 +48,37 @@ body {
   gap: 10px;
   margin-bottom: 10px;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ボタングループのスタイル */
+.button-group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* スマートフォン対応: ボタンを縦並びに */
+@media (max-width: 640px) {
+  .input-group {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .input-group .input-field {
+    width: 100%;
+    margin-bottom: 8px;
+  }
+  
+  .button-group {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .button-group .button {
+    width: 100%;
+    min-height: 48px; /* タッチしやすい高さ */
+  }
 }
 
 .input-field {
@@ -58,6 +96,17 @@ body {
   cursor: pointer;
   font-size: 16px;
   font-weight: bold;
+  min-height: 44px; /* タッチしやすい最小高さ */
+  touch-action: manipulation; /* タッチ最適化 */
+}
+
+/* スマートフォン対応 */
+@media (max-width: 640px) {
+  .button {
+    padding: 12px 16px;
+    font-size: 14px;
+    min-height: 48px;
+  }
 }
 
 .button-primary {
@@ -101,6 +150,14 @@ body {
   grid-template-columns: 1fr 1fr 1fr;
   gap: 10px;
   margin: 10px 0;
+}
+
+/* スマートフォン対応: 商品情報を縦並びに */
+@media (max-width: 640px) {
+  .product-info {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
 }
 
 .info-item {
@@ -151,6 +208,49 @@ body {
   background-color: #f8f9fa;
   font-weight: bold;
   border-bottom: 2px solid #dee2e6;
+}
+
+/* スマートフォン対応: 購入リストを縦並びに */
+@media (max-width: 768px) {
+  .purchase-header {
+    display: none; /* ヘッダーを非表示 */
+  }
+  
+  .purchase-item {
+    display: block;
+    padding: 12px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .purchase-item:last-child {
+    border-bottom: 1px solid #e9ecef;
+  }
+  
+  /* 購入アイテム内のレイアウト */
+  .purchase-item > div {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 4px !important;
+    padding: 2px 0 !important;
+  }
+  
+  .purchase-item > div:last-child {
+    justify-content: center !important;
+    margin-top: 8px !important;
+  }
+  
+  /* モバイル用のラベル表示 */
+  .purchase-item > div:nth-child(1)::before { content: "商品名: "; font-weight: bold; color: #666; }
+  .purchase-item > div:nth-child(2)::before { content: "色: "; font-weight: bold; color: #666; }
+  .purchase-item > div:nth-child(3)::before { content: "品番: "; font-weight: bold; color: #666; }
+  .purchase-item > div:nth-child(4)::before { content: "数量: "; font-weight: bold; color: #666; }
+  .purchase-item > div:nth-child(5)::before { content: "単価: "; font-weight: bold; color: #666; }
+  .purchase-item > div:nth-child(6)::before { content: "小計: "; font-weight: bold; color: #666; }
 }
 
 .total-section {
@@ -325,6 +425,19 @@ body {
   animation: scan-pulse 2s ease-in-out infinite;
 }
 
+/* スマートフォン対応: スキャン枠のサイズ調整 */
+@media (max-width: 640px) {
+  .barcode-scanner-frame {
+    width: 140px;
+    height: 84px;
+    border-width: 2px;
+    box-shadow: 
+      0 0 0 1px rgba(239, 68, 68, 0.3),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+    animation: scan-pulse-mobile 2s ease-in-out infinite;
+  }
+}
+
 @keyframes scan-pulse {
   0%, 100% {
     box-shadow: 
@@ -338,10 +451,82 @@ body {
   }
 }
 
+@keyframes scan-pulse-mobile {
+  0%, 100% {
+    box-shadow: 
+      0 0 0 1px rgba(239, 68, 68, 0.3),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+  }
+  50% {
+    box-shadow: 
+      0 0 0 3px rgba(239, 68, 68, 0.5),
+      inset 0 0 0 1px rgba(255, 255, 255, 1);
+  }
+}
+
 .barcode-scanner-container {
   position: relative;
   background: #000;
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 12px;
+  width: 100%;
+  /* 16:9 アスペクト比を維持 */
+  aspect-ratio: 16 / 9;
+  max-height: 400px; /* 最大高さを制限 */
+}
+
+.barcode-scanner-container video,
+.barcode-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 画角が余らないように画面全体を覆う */
+  object-position: center; /* 中央に配置 */
+  transition: all 0.3s ease; /* スムーズな変更 */
+}
+
+/* スマートフォン対応: より正方形に近いアスペクト比 */
+@media (max-width: 640px) {
+  .barcode-scanner-container {
+    /* 4:3 アスペクト比（スマホカメラに適した比率） */
+    aspect-ratio: 4 / 3;
+    max-height: 300px; /* モバイルでの最大高さ */
+  }
+  
+  .barcode-scanner-container video,
+  .barcode-video {
+    object-fit: cover;
+    object-position: center;
+  }
+}
+
+/* 超小型デバイス用 */
+@media (max-width: 480px) {
+  .barcode-scanner-container {
+    /* ほぼ正方形（1.2:1）でより使いやすく */
+    aspect-ratio: 6 / 5;
+    max-height: 250px; /* 小型デバイスでの最大高さ */
+  }
+}
+
+/* フォールバック枠用のスタイル */
+.barcode-fallback-frame {
+  animation: scan-pulse 2s ease-in-out infinite;
+}
+
+@media (max-width: 640px) {
+  .barcode-fallback-frame {
+    animation: scan-pulse-mobile 2s ease-in-out infinite;
+  }
+}
+
+/* タッチデバイス用の調整 */
+@media (hover: none) and (pointer: coarse) {
+  .button:hover {
+    transform: none;
+  }
+  
+  .modal-close-button:hover {
+    transform: translateY(0);
+  }
 }

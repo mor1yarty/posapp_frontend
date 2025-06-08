@@ -19,6 +19,21 @@ export default function BarcodeScanner({
   const videoRef = useRef<HTMLVideoElement>(null);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    // モバイル判定
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth <= 640);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkIsMobile);
+    };
+  }, []);
 
   useEffect(() => {
     if (isScanning) {
@@ -34,10 +49,17 @@ export default function BarcodeScanner({
 
   const startScanning = async () => {
     try {
-      // カメラアクセス許可の確認
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } // 背面カメラを優先
-      });
+      // カメラアクセス許可の確認と最適な解像度設定
+      const constraints = {
+        video: {
+          facingMode: 'environment', // 背面カメラを優先
+          width: isMobile ? { ideal: 640, max: 1280 } : { ideal: 1280, max: 1920 },
+          height: isMobile ? { ideal: 480, max: 960 } : { ideal: 720, max: 1080 },
+          aspectRatio: isMobile ? { ideal: 4/3 } : { ideal: 16/9 }, // デバイスに応じたアスペクト比
+        }
+      };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       setHasPermission(true);
       
       if (videoRef.current) {
@@ -49,7 +71,7 @@ export default function BarcodeScanner({
       
       if (videoRef.current) {
         readerRef.current.decodeFromVideoDevice(
-          undefined, // デフォルトデバイス
+          null, // デフォルトデバイス
           videoRef.current,
           (result, error) => {
             if (result) {
@@ -108,14 +130,8 @@ export default function BarcodeScanner({
 
   return (
     <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-gray-800">カメラでJANコードをスキャン</h3>
-        <button
-          onClick={onClose}
-          className="text-gray-500 hover:text-gray-700 text-xl font-bold"
-        >
-          ×
-        </button>
+      <div className="mb-4">
+        <h3 className="text-lg font-semibold text-gray-800 text-center">カメラでJANコードをスキャン</h3>
       </div>
       
       {hasPermission === false && (
@@ -146,23 +162,27 @@ export default function BarcodeScanner({
               autoPlay
               playsInline
               muted
-              className="w-full h-48 object-cover"
+              className="barcode-video"
             />
             <div className="barcode-scanner-frame"></div>
             {/* フォールバック枠（CSSが効かない場合用） */}
             <div 
+              className="barcode-fallback-frame"
               style={{
                 position: 'absolute',
                 top: '50%',
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
-                width: '160px',
-                height: '96px',
-                border: '3px solid red',
+                width: isMobile ? '140px' : '160px',
+                height: isMobile ? '84px' : '96px',
+                border: isMobile ? '2px solid #ef4444' : '3px solid #ef4444',
                 borderRadius: '8px',
                 backgroundColor: 'transparent',
                 pointerEvents: 'none',
-                zIndex: 10
+                zIndex: 10,
+                boxShadow: isMobile 
+                  ? '0 0 0 1px rgba(239, 68, 68, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.8)'
+                  : '0 0 0 2px rgba(239, 68, 68, 0.3), inset 0 0 0 2px rgba(255, 255, 255, 0.8)'
               }}
             ></div>
           </div>
