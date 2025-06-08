@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { Product, PurchaseItem, PurchaseResponse } from '@/types';
+import BarcodeScanner from '@/components/BarcodeScanner';
+import TaxModal from '@/components/TaxModal';
 import './globals.css';
 
 export default function Home() {
@@ -12,10 +14,15 @@ export default function Home() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  // 🆕 Lv2 新機能のstate
+  const [isScanning, setIsScanning] = useState(false);
+  const [showTaxModal, setShowTaxModal] = useState(false);
+  const [taxInfo, setTaxInfo] = useState({ totalAmount: 0, totalAmountExTax: 0, taxAmount: 0 });
 
-  // 商品検索
-  const searchProduct = async () => {
-    if (!productCode.trim()) {
+  // 商品検索（共通処理）
+  const searchProduct = async (code?: string) => {
+    const searchCode = code || productCode;
+    if (!searchCode.trim()) {
       setErrorMessage('商品コードを入力してください');
       return;
     }
@@ -25,10 +32,13 @@ export default function Home() {
     setSuccessMessage('');
 
     try {
-      const response = await axios.get(`/api/products/${productCode}`);
+      const response = await axios.get(`/api/products/${searchCode}`);
       
       if (response.data) {
         setCurrentProduct(response.data);
+        if (code) {
+          setProductCode(code); // スキャンされたコードを表示
+        }
       } else {
         setCurrentProduct(null);
         setErrorMessage('商品がマスタ未登録です');
@@ -40,6 +50,27 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // 🆕 バーコードスキャン成功時の処理
+  const handleScanSuccess = (code: string) => {
+    console.log('スキャン成功:', code);
+    setIsScanning(false);
+    searchProduct(code);
+  };
+
+  // 🆕 バーコードスキャンエラー時の処理
+  const handleScanError = (error: string) => {
+    console.error('スキャンエラー:', error);
+    setErrorMessage(error);
+    setIsScanning(false);
+  };
+
+  // 🆕 スキャンボタンクリック時の処理
+  const startScanning = () => {
+    setErrorMessage('');
+    setSuccessMessage('');
+    setIsScanning(true);
   };
 
   // 購入リストに追加
@@ -105,9 +136,13 @@ export default function Home() {
       const response = await axios.post<PurchaseResponse>('/api/purchase', purchaseData);
 
       if (response.data.success) {
-        setSuccessMessage(
-          `購入処理が完了しました。合計金額: ¥${response.data.total_amount.toLocaleString()}`
-        );
+        // 🆕 税込・税抜情報を表示するモーダルを表示
+        setTaxInfo({
+          totalAmount: response.data.total_amount,
+          totalAmountExTax: response.data.total_amount_ex_tax || 0,
+          taxAmount: response.data.tax_amount || 0
+        });
+        setShowTaxModal(true);
         setPurchaseList([]);
       } else {
         setErrorMessage('購入処理に失敗しました');
@@ -145,17 +180,26 @@ export default function Home() {
             <input
               type="text"
               className="input-field"
-              placeholder="商品コードを入力してください"
+              placeholder="② コード表示エリア"
               value={productCode}
               onChange={(e) => setProductCode(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && searchProduct()}
+              readOnly={false}
             />
             <button 
               className="button button-primary"
-              onClick={searchProduct}
+              onClick={startScanning}
+              disabled={loading}
+              style={{ marginRight: '10px' }}
+            >
+              ① スキャン（カメラ）
+            </button>
+            <button 
+              className="button button-secondary"
+              onClick={() => searchProduct()}
               disabled={loading}
             >
-              ① 読み込み
+              手動検索
             </button>
           </div>
 
@@ -267,6 +311,23 @@ export default function Home() {
           </button>
         </div>
       </div>
+
+      {/* 🆕 バーコードスキャナー */}
+      <BarcodeScanner
+        isScanning={isScanning}
+        onScanSuccess={handleScanSuccess}
+        onScanError={handleScanError}
+        onClose={() => setIsScanning(false)}
+      />
+
+      {/* 🆕 税込・税抜表示モーダル */}
+      <TaxModal
+        isOpen={showTaxModal}
+        onClose={() => setShowTaxModal(false)}
+        totalAmount={taxInfo.totalAmount}
+        totalAmountExTax={taxInfo.totalAmountExTax}
+        taxAmount={taxInfo.taxAmount}
+      />
     </div>
   );
 }

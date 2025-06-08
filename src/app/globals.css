@@ -87,6 +87,15 @@ body {
   background-color: #e0a800;
 }
 
+.button-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.button-secondary:hover {
+  background-color: #545b62;
+}
+
 .product-info {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;

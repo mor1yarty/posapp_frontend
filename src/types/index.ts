@@ -29,6 +29,8 @@ export interface PurchaseRequest {
 export interface PurchaseResponse {
   success: boolean;
   total_amount: number;
+  total_amount_ex_tax?: number;  // 🆕 税抜金額
+  tax_amount?: number;           // 🆕 消費税額
   transaction_id?: number;
   message?: string;
 }
