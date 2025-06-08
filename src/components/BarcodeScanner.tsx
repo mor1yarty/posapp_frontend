@@ -1,12 +1,8 @@
 'use client';
 
-import { useRef, useEffect, useState } from 'react';
-import { 
-  BrowserMultiFormatReader, 
-  BrowserCodeReader,
-  DecodeHintType,
-  BarcodeFormat 
-} from '@zxing/library';
+import { useRef, useEffect, useState, useCallback } from 'react';
+import { BrowserMultiFormatReader } from '@zxing/library';
+import { useDebounce } from 'react-use';
 
 interface BarcodeScannerProps {
   onScanSuccess: (code: string) => void;
@@ -25,9 +21,6 @@ export default function BarcodeScanner({
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isMobile, setIsMobile] = useState(false);
-  const [scanProgress, setScanProgress] = useState<number>(0);
-  const [showManualInput, setShowManualInput] = useState(false);
-  const [manualCode, setManualCode] = useState('');
 
   useEffect(() => {
     // モバイル判定
@@ -55,119 +48,79 @@ export default function BarcodeScanner({
     };
   }, [isScanning]);
 
-  const startScanning = async () => {
+  const startScanning = useCallback(async () => {
     try {
-      // カメラアクセス許可の確認と最適な解像度設定
+      setHasPermission(true);
+      
+      // シンプルなカメラ制約（高速化重視）
       const constraints = {
         video: {
-          facingMode: 'environment', // 背面カメラを優先
-          width: isMobile ? { ideal: 1280, max: 1920 } : { ideal: 1920, max: 2560 },
-          height: isMobile ? { ideal: 720, max: 1080 } : { ideal: 1080, max: 1440 },
-          aspectRatio: isMobile ? { ideal: 16/9 } : { ideal: 16/9 }, // 統一したアスペクト比
-          focusMode: 'continuous', // 連続オートフォーカス
-          exposureMode: 'continuous', // 連続露出調整
+          facingMode: 'environment', // 背面カメラ優先
+          width: { ideal: 640 }, // 固定解像度で高速化
+          height: { ideal: 480 },
         }
       };
       
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      setHasPermission(true);
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        // ビデオが再生準備完了まで待機
-        await new Promise((resolve) => {
-          videoRef.current!.addEventListener('loadedmetadata', resolve, { once: true });
-        });
       }
 
-      // ZXingライブラリの高精度設定
-      const hints = new Map();
-      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-        BarcodeFormat.EAN_13,
-        BarcodeFormat.EAN_8,
-        BarcodeFormat.CODE_128,
-        BarcodeFormat.CODE_39,
-        BarcodeFormat.UPC_A,
-        BarcodeFormat.UPC_E,
-      ]);
-      hints.set(DecodeHintType.TRY_HARDER, true);
-      
-      readerRef.current = new BrowserMultiFormatReader(hints);
+      // シンプルなZXing設定
+      readerRef.current = new BrowserMultiFormatReader();
       
       if (videoRef.current) {
-        let scanCount = 0;
-        const maxScans = 100; // 最大スキャン回数制限
-        
-        readerRef.current.decodeFromVideoDevice(
-          null, // デフォルトデバイス
-          videoRef.current,
-          (result, error) => {
-            scanCount++;
-            const progress = Math.min((scanCount / maxScans) * 100, 100);
-            setScanProgress(progress);
-            
-            if (result) {
-              // バーコード読み取り成功
-              const code = result.getText();
-              console.log('バーコード読み取り成功:', code, 'スキャン回数:', scanCount);
-              
-              // JANコード（EAN-13, EAN-8）の妥当性チェック
-              if ((code.length === 13 || code.length === 8) && /^\d+$/.test(code)) {
-                setScanProgress(100);
-                onScanSuccess(code);
-                stopScanning();
-              } else if (code.length === 12 && /^\d{12}$/.test(code)) {
-                // UPC-A (12桁) を EAN-13 (13桁) に変換
-                const eanCode = '0' + code;
-                console.log('UPC-A をEAN-13に変換:', code, '->', eanCode);
-                setScanProgress(100);
-                onScanSuccess(eanCode);
-                stopScanning();
-              } else {
-                console.log('無効なコード形式:', code, '長さ:', code.length);
-              }
-            }
-            
-            if (error && !(error.name === 'NotFoundException')) {
-              console.error('バーコード読み取りエラー:', error, 'スキャン回数:', scanCount);
-              
-              // 一定回数エラーが続いた場合のみユーザーに通知
-              if (scanCount > 50 && scanCount % 25 === 0) {
-                onScanError(`読み取りが困難です。バーコードを枠内に合わせ、明るい場所で再度お試しください。`);
-              }
-            }
-            
-            // 最大スキャン回数に達した場合は停止
-            if (scanCount >= maxScans) {
-              console.log('最大スキャン回数に達しました');
-              setScanProgress(100);
-              onScanError('読み取りタイムアウト。バーコードを確認して再度お試しください。');
-              stopScanning();
-            }
+        // 高速スキャンコールバック（最小限）
+        const handleScanResult = (result: any, error: any) => {
+          if (!result) return;
+          if (error) return;
+          
+          const code = result.getText();
+          console.log('バーコード検出:', code);
+          
+          // JANコード即座検証
+          if ((code.length === 13 || code.length === 8) && /^\d+$/.test(code)) {
+            onScanSuccess(code);
+            stopScanning();
+          } else if (code.length === 12 && /^\d{12}$/.test(code)) {
+            const eanCode = '0' + code;
+            onScanSuccess(eanCode);
+            stopScanning();
           }
+        };
+        
+        // 参考記事と同様のシンプルな実装
+        readerRef.current.decodeFromVideoDevice(
+          null,
+          videoRef.current,
+          handleScanResult
         );
       }
+      
+      // 10秒でタイムアウト（短縮）
+      setTimeout(() => {
+        onScanError('読み取りタイムアウト。再度お試しください。');
+        stopScanning();
+      }, 10000);
+      
     } catch (error) {
-      console.error('カメラアクセスエラー:', error);
+      console.error('カメラエラー:', error);
       setHasPermission(false);
       
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
-          onScanError('カメラへのアクセスが拒否されました。ブラウザ設定でカメラアクセスを許可してください。');
+          onScanError('カメラアクセスが拒否されました。');
         } else if (error.name === 'NotFoundError') {
-          onScanError('カメラが見つかりません。デバイスにカメラが接続されているか確認してください。');
-        } else if (error.name === 'NotSupportedError') {
-          onScanError('このブラウザではカメラアクセスがサポートされていません。HTTPS接続を確認してください。');
+          onScanError('カメラが見つかりません。');
         } else {
-          onScanError(`カメラエラー: ${error.message}`);
+          onScanError('カメラエラーが発生しました。');
         }
-      } else {
-        onScanError('不明なカメラエラーが発生しました。');
       }
     }
-  };
+  }, [onScanSuccess, onScanError]);
 
-  const stopScanning = () => {
+  const stopScanning = useCallback(() => {
     // ZXingリーダーの停止
     if (readerRef.current) {
       readerRef.current.reset();
@@ -180,26 +133,8 @@ export default function BarcodeScanner({
       stream.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
-    
-    // プログレスリセット
-    setScanProgress(0);
-  };
+  }, []);
 
-  const handleManualSubmit = () => {
-    if (manualCode.length === 13 && /^\d{13}$/.test(manualCode)) {
-      onScanSuccess(manualCode);
-      setManualCode('');
-      setShowManualInput(false);
-      stopScanning();
-    } else if (manualCode.length === 8 && /^\d{8}$/.test(manualCode)) {
-      onScanSuccess(manualCode);
-      setManualCode('');
-      setShowManualInput(false);
-      stopScanning();
-    } else {
-      alert('有効なJANコード（8桁または13桁の数字）を入力してください。');
-    }
-  };
 
   if (!isScanning) {
     return null;
@@ -208,25 +143,24 @@ export default function BarcodeScanner({
   return (
     <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
       <div className="mb-4">
-        <h3 className="text-lg font-semibold text-gray-800 text-center">カメラでJANコードをスキャン</h3>
+        <h3 className="text-lg font-semibold text-gray-800 text-center">🚀 高速JANスキャン</h3>
+        <p className="text-sm text-gray-600 text-center mt-1">カメラでバーコードを読み取ります</p>
       </div>
       
       {hasPermission === false && (
-        <div className="text-center p-4">
-          <div className="text-red-600 mb-4">
-            <svg className="w-12 h-12 mx-auto mb-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+        <div className="text-center p-6">
+          <div className="text-red-500 mb-4">
+            <svg className="w-16 h-16 mx-auto mb-3" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+              <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd"/>
             </svg>
-            <p className="font-semibold">カメラアクセスが必要です</p>
+            <p className="font-bold text-lg">カメラアクセス許可が必要です</p>
           </div>
-          <p className="text-sm text-gray-600 mb-4">
-            JANコードをスキャンするにはカメラへのアクセス許可が必要です。
-          </p>
           <button
             onClick={startScanning}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 font-semibold"
           >
-            カメラアクセスを許可
+            📷 カメラを有効にする
           </button>
         </div>
       )}
@@ -267,61 +201,13 @@ export default function BarcodeScanner({
             <p className="text-sm text-gray-600 text-center mb-2">
               <span style={{ color: '#ef4444', fontWeight: 'bold' }}>赤い枠内</span>にJANコードを合わせてください
             </p>
-            
-            {/* スキャン進捗バー */}
-            <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-              <div 
-                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${scanProgress}%` }}
-              ></div>
-            </div>
-            
-            <p className="text-xs text-gray-500 text-center">
-              スキャン中... {Math.round(scanProgress)}%
-              <br />
-              <span className="text-amber-600">💡 明るい場所で、バーコードを水平に保持してください</span>
-            </p>
           </div>
-          {showManualInput ? (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-              <h4 className="font-semibold text-gray-800 mb-2">手動でJANコードを入力</h4>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={manualCode}
-                  onChange={(e) => setManualCode(e.target.value.replace(/\D/g, ''))}
-                  placeholder="JANコード（8桁または13桁）"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded"
-                  maxLength={13}
-                />
-                <button
-                  onClick={handleManualSubmit}
-                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                >
-                  検索
-                </button>
-              </div>
-              <button
-                onClick={() => setShowManualInput(false)}
-                className="text-sm text-gray-600 underline mt-2"
-              >
-                カメラスキャンに戻る
-              </button>
-            </div>
-          ) : null}
-          
-          <div className="flex justify-center gap-2">
+          <div className="flex justify-center">
             <button
               onClick={onClose}
-              className="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600"
+              className="bg-red-500 text-white px-8 py-3 rounded-lg hover:bg-red-600 font-semibold"
             >
               スキャン停止
-            </button>
-            <button
-              onClick={() => setShowManualInput(true)}
-              className="bg-orange-500 text-white px-6 py-2 rounded hover:bg-orange-600"
-            >
-              手動入力
             </button>
           </div>
         </div>

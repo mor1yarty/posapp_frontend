@@ -290,71 +290,12 @@ test.describe('POSアプリケーション E2Eテスト', () => {
     await scanButton.click();
     
     // バーコードスキャナーコンポーネントが表示されることを確認
-    await expect(page.locator('text=カメラでJANコードをスキャン')).toBeVisible();
-    
-    // 手動入力ボタンが表示されることを確認
-    await expect(page.locator('button:has-text("手動入力")')).toBeVisible();
+    await expect(page.locator('text=🚀 高速JANスキャン')).toBeVisible();
     
     // スキャン停止ボタンが表示されることを確認
     await expect(page.locator('button:has-text("スキャン停止")')).toBeVisible();
   });
 
-  test('手動JANコード入力機能テスト', async ({ page }) => {
-    // スキャン（カメラ）ボタンをクリック
-    const scanButton = page.locator('button:has-text("① スキャン（カメラ）")');
-    await scanButton.click();
-    
-    // 手動入力ボタンをクリック
-    const manualButton = page.locator('button:has-text("手動入力")');
-    await manualButton.click();
-    
-    // 手動入力フィールドが表示されることを確認
-    const manualInput = page.locator('input[placeholder="JANコード（8桁または13桁）"]');
-    await expect(manualInput).toBeVisible();
-    
-    // 有効なJANコードを入力
-    await manualInput.fill('4901681143115');
-    
-    // 検索ボタンをクリック
-    const searchButton = page.locator('button:has-text("検索")');
-    await searchButton.click();
-    
-    // 商品情報が表示されることを確認
-    await expect(page.locator('.info-value').first()).toContainText('サラサクリップ', { timeout: 5000 });
-    
-    // スキャナーが自動的に閉じることを確認
-    await expect(page.locator('text=カメラでJANコードをスキャン')).not.toBeVisible();
-  });
-
-  test('手動入力でのバリデーションテスト', async ({ page }) => {
-    // スキャン（カメラ）ボタンをクリック
-    const scanButton = page.locator('button:has-text("① スキャン（カメラ）")');
-    await scanButton.click();
-    
-    // 手動入力ボタンをクリック
-    const manualButton = page.locator('button:has-text("手動入力")');
-    await manualButton.click();
-    
-    // 無効なコード（文字列）を入力
-    const manualInput = page.locator('input[placeholder="JANコード（8桁または13桁）"]');
-    await manualInput.fill('abcd1234');
-    
-    // 入力フィールドが数字のみになることを確認
-    await expect(manualInput).toHaveValue('1234');
-    
-    // 無効なコード（短すぎる）を入力
-    await manualInput.fill('123');
-    
-    // 検索ボタンをクリック
-    const searchButton = page.locator('button:has-text("検索")');
-    await searchButton.click();
-    
-    // アラートが表示されることを確認（JavaScriptアラート）
-    page.on('dialog', dialog => {
-      expect(dialog.message()).toContain('有効なJANコード（8桁または13桁の数字）を入力してください。');
-      dialog.accept();
-    });
-  });
 
   test('購入完了時の税込・税抜表示テスト', async ({ page }) => {
     // 商品を購入リストに追加
@@ -396,14 +337,14 @@ test.describe('POSアプリケーション E2Eテスト', () => {
     await scanButton.click();
     
     // バーコードスキャナーが表示されることを確認
-    await expect(page.locator('text=カメラでJANコードをスキャン')).toBeVisible();
+    await expect(page.locator('text=🚀 高速JANスキャン')).toBeVisible();
     
     // スキャン停止ボタンをクリック
     const stopButton = page.locator('button:has-text("スキャン停止")');
     await stopButton.click();
     
     // バーコードスキャナーが非表示になることを確認
-    await expect(page.locator('text=カメラでJANコードをスキャン')).not.toBeVisible();
+    await expect(page.locator('text=🚀 高速JANスキャン')).not.toBeVisible();
     
     // スキャン（カメラ）ボタンが再び表示されることを確認
     await expect(scanButton).toBeVisible();
