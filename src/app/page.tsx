@@ -133,7 +133,11 @@ export default function Home() {
         items: expandedItems
       };
 
-      const response = await axios.post<PurchaseResponse>('/api/purchase', purchaseData);
+      const response = await axios.post<PurchaseResponse>('/api/purchase', purchaseData, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
 
       if (response.data.success) {
         // 🆕 税込・税抜情報を表示するモーダルを表示
