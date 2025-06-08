@@ -206,6 +206,14 @@ export default function Home() {
             </button>
           </div>
 
+          {/* 🆕 インライン バーコードスキャナー */}
+          <BarcodeScanner
+            isScanning={isScanning}
+            onScanSuccess={handleScanSuccess}
+            onScanError={handleScanError}
+            onClose={() => setIsScanning(false)}
+          />
+
           {/* 商品情報表示 */}
           {currentProduct && (
             <div className="product-info">
@@ -314,14 +322,6 @@ export default function Home() {
           </button>
         </div>
       </div>
-
-      {/* 🆕 バーコードスキャナー */}
-      <BarcodeScanner
-        isScanning={isScanning}
-        onScanSuccess={handleScanSuccess}
-        onScanError={handleScanError}
-        onClose={() => setIsScanning(false)}
-      />
 
       {/* 🆕 税込・税抜表示モーダル */}
       <TaxModal

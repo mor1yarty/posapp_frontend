@@ -306,3 +306,42 @@ body {
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
+
+/* バーコードスキャナー用スタイル */
+.barcode-scanner-frame {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 160px;
+  height: 96px;
+  border: 3px solid #ef4444;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: 
+    0 0 0 2px rgba(239, 68, 68, 0.3),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.8);
+  pointer-events: none;
+  animation: scan-pulse 2s ease-in-out infinite;
+}
+
+@keyframes scan-pulse {
+  0%, 100% {
+    box-shadow: 
+      0 0 0 2px rgba(239, 68, 68, 0.3),
+      inset 0 0 0 2px rgba(255, 255, 255, 0.8);
+  }
+  50% {
+    box-shadow: 
+      0 0 0 4px rgba(239, 68, 68, 0.5),
+      inset 0 0 0 2px rgba(255, 255, 255, 1);
+  }
+}
+
+.barcode-scanner-container {
+  position: relative;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
