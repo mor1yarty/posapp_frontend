@@ -19,6 +19,8 @@ export default function BarcodeScanner({
 }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isProcessingRef = useRef<boolean>(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -50,6 +52,8 @@ export default function BarcodeScanner({
 
   const startScanning = useCallback(async () => {
     try {
+      // 処理状態をリセット
+      isProcessingRef.current = false;
       setHasPermission(true);
       
       // シンプルなカメラ制約（高速化重視）
@@ -73,6 +77,8 @@ export default function BarcodeScanner({
       if (videoRef.current) {
         // 高速スキャンコールバック（最小限）
         const handleScanResult = (result: any, error: any) => {
+          // 既に処理中の場合は無視
+          if (isProcessingRef.current) return;
           if (!result) return;
           if (error) return;
           
@@ -81,12 +87,31 @@ export default function BarcodeScanner({
           
           // JANコード即座検証
           if ((code.length === 13 || code.length === 8) && /^\d+$/.test(code)) {
+            isProcessingRef.current = true; // 処理中フラグをセット
+            
+            // タイムアウトをクリア
+            if (timeoutRef.current) {
+              clearTimeout(timeoutRef.current);
+              timeoutRef.current = null;
+            }
+            
+            // スキャンを停止してから成功処理
+            stopScanning();
             onScanSuccess(code);
-            stopScanning();
+            
           } else if (code.length === 12 && /^\d{12}$/.test(code)) {
+            isProcessingRef.current = true; // 処理中フラグをセット
+            
+            // タイムアウトをクリア
+            if (timeoutRef.current) {
+              clearTimeout(timeoutRef.current);
+              timeoutRef.current = null;
+            }
+            
             const eanCode = '0' + code;
-            onScanSuccess(eanCode);
+            // スキャンを停止してから成功処理
             stopScanning();
+            onScanSuccess(eanCode);
           }
         };
         
@@ -98,10 +123,12 @@ export default function BarcodeScanner({
         );
       }
       
-      // 10秒でタイムアウト（短縮）
-      setTimeout(() => {
-        onScanError('読み取りタイムアウト。再度お試しください。');
-        stopScanning();
+      // 10秒でタイムアウト（タイムアウト参照を保存）
+      timeoutRef.current = setTimeout(() => {
+        if (!isProcessingRef.current) { // 成功処理中でない場合のみタイムアウト処理
+          onScanError('読み取りタイムアウト。再度お試しください。');
+          stopScanning();
+        }
       }, 10000);
       
     } catch (error) {
@@ -121,6 +148,12 @@ export default function BarcodeScanner({
   }, [onScanSuccess, onScanError]);
 
   const stopScanning = useCallback(() => {
+    // タイムアウトのクリア
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
     // ZXingリーダーの停止
     if (readerRef.current) {
       readerRef.current.reset();
@@ -133,6 +166,9 @@ export default function BarcodeScanner({
       stream.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
+
+    // 処理状態をリセット
+    isProcessingRef.current = false;
   }, []);
 
 
