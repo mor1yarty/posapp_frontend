@@ -32,9 +32,9 @@ export default function Home() {
     setSuccessMessage('');
 
     try {
-      // 環境変数からAPIベースURLを取得
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-      const apiUrl = apiBaseUrl ? `${apiBaseUrl}/products/${searchCode}` : `/api/products/${searchCode}`;
+      // 環境変数から直接APIベースURLを取得
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL!;
+      const apiUrl = `${apiBaseUrl}/products/${searchCode}`;
       
       const response = await axios.get(apiUrl);
       
@@ -137,9 +137,9 @@ export default function Home() {
         items: expandedItems
       };
 
-      // 環境変数からAPIベースURLを取得
-      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-      const apiUrl = apiBaseUrl ? `${apiBaseUrl}/purchase` : '/api/purchase';
+      // 環境変数から直接APIベースURLを取得
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL!;
+      const apiUrl = `${apiBaseUrl}/purchase`;
       
       const response = await axios.post<PurchaseResponse>(apiUrl, purchaseData, {
         headers: {
@@ -198,7 +198,7 @@ export default function Home() {
               placeholder="② コード表示エリア"
               value={productCode}
               onChange={(e) => setProductCode(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && searchProduct()}
+              onKeyDown={(e) => e.key === 'Enter' && searchProduct()}
               readOnly={false}
             />
             <div className="button-group">
