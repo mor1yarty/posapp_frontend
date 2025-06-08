@@ -144,6 +144,9 @@ export default function Home() {
         });
         setShowTaxModal(true);
         setPurchaseList([]);
+        // エラー・成功メッセージをクリア（モーダルが表示されるため）
+        setErrorMessage('');
+        setSuccessMessage('');
       } else {
         setErrorMessage('購入処理に失敗しました');
       }
@@ -323,7 +326,11 @@ export default function Home() {
       {/* 🆕 税込・税抜表示モーダル */}
       <TaxModal
         isOpen={showTaxModal}
-        onClose={() => setShowTaxModal(false)}
+        onClose={() => {
+          setShowTaxModal(false);
+          setErrorMessage('');
+          setSuccessMessage('');
+        }}
         totalAmount={taxInfo.totalAmount}
         totalAmountExTax={taxInfo.totalAmountExTax}
         taxAmount={taxInfo.taxAmount}

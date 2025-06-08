@@ -184,3 +184,125 @@ body {
   padding: 10px;
   margin: 10px 0;
 }
+
+/* モーダル用の共通スタイル */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-content {
+  position: relative;
+  z-index: 10000;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+  max-width: 420px;
+  width: 100%;
+  margin: 20px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+/* 購入完了モーダル専用スタイル */
+.purchase-success-icon {
+  width: 4rem;
+  height: 4rem;
+  background: linear-gradient(135deg, #84cc16 0%, #65a30d 100%); /* lime-500 to lime-600 黄緑系グラデーション */
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem auto;
+  box-shadow: 0 8px 16px rgba(132, 204, 22, 0.3);
+}
+
+.purchase-success-icon svg {
+  width: 2rem;
+  height: 2rem;
+  color: white;
+  drop-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.purchase-success-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1f2937;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.purchase-success-subtitle {
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.tax-breakdown {
+  background-color: #f9fafb;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.tax-breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.tax-breakdown-item:last-child {
+  margin-bottom: 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.tax-breakdown-label {
+  color: #6b7280;
+}
+
+.tax-breakdown-value {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.tax-breakdown-total-label {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.tax-breakdown-total-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #059669; /* emerald-600 */
+}
+
+.modal-close-button {
+  width: 100%;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%); /* emerald-500 to emerald-600 */
+  color: white;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.modal-close-button:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%); /* emerald-600 to emerald-700 */
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
