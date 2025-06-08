@@ -32,7 +32,11 @@ export default function Home() {
     setSuccessMessage('');
 
     try {
-      const response = await axios.get(`/api/products/${searchCode}`);
+      // 環境変数からAPIベースURLを取得
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+      const apiUrl = apiBaseUrl ? `${apiBaseUrl}/products/${searchCode}` : `/api/products/${searchCode}`;
+      
+      const response = await axios.get(apiUrl);
       
       if (response.data) {
         setCurrentProduct(response.data);
@@ -133,7 +137,11 @@ export default function Home() {
         items: expandedItems
       };
 
-      const response = await axios.post<PurchaseResponse>('/api/purchase', purchaseData, {
+      // 環境変数からAPIベースURLを取得
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+      const apiUrl = apiBaseUrl ? `${apiBaseUrl}/purchase` : '/api/purchase';
+      
+      const response = await axios.post<PurchaseResponse>(apiUrl, purchaseData, {
         headers: {
           'Content-Type': 'application/json'
         }
