@@ -70,44 +70,50 @@ export default function BarcodeScanner({
       }
       
       // Apple デバイス対応のプログレッシブ制約
-      const constraintOptions = [
-        // iPhone/iPad 背面カメラ用
-        isIOS ? {
+      const constraintOptions: MediaStreamConstraints[] = [];
+      
+      // iPhone/iPad 背面カメラ用
+      if (isIOS) {
+        constraintOptions.push({
           video: {
             facingMode: { exact: 'environment' },
             width: { ideal: 640, min: 320, max: 1280 },
             height: { ideal: 480, min: 240, max: 720 },
           }
-        } : null,
-        
-        // iPhone/iPad フロントカメラフォールバック
-        isIOS ? {
+        });
+      }
+      
+      // iPhone/iPad フロントカメラフォールバック
+      if (isIOS) {
+        constraintOptions.push({
           video: {
             facingMode: 'user',
             width: { ideal: 640, min: 320 },
             height: { ideal: 480, min: 240 },
           }
-        } : null,
-        
-        // Mac カメラ用（facingMode指定なし）
-        isMacOS ? {
+        });
+      }
+      
+      // Mac カメラ用（facingMode指定なし）
+      if (isMacOS) {
+        constraintOptions.push({
           video: {
             width: { ideal: 640, min: 320, max: 1280 },
             height: { ideal: 480, min: 240, max: 720 },
           }
-        } : null,
-        
-        // 汎用制約（フォールバック）
-        {
-          video: {
-            width: { ideal: 640, min: 320 },
-            height: { ideal: 480, min: 240 },
-          }
-        },
-        
-        // 最終フォールバック
-        { video: true }
-      ].filter(Boolean); // null を除去
+        });
+      }
+      
+      // 汎用制約（フォールバック）
+      constraintOptions.push({
+        video: {
+          width: { ideal: 640, min: 320 },
+          height: { ideal: 480, min: 240 },
+        }
+      });
+      
+      // 最終フォールバック
+      constraintOptions.push({ video: true });
       
       let stream = null;
       let constraintIndex = 0;
@@ -126,7 +132,7 @@ export default function BarcodeScanner({
         }
       }
       
-      if (videoRef.current) {
+      if (videoRef.current && stream) {
         videoRef.current.srcObject = stream;
         
         // カメラ情報の取得
