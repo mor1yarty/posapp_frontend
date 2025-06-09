@@ -2,7 +2,6 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { BrowserMultiFormatReader } from '@zxing/library';
-import { useDebounce } from 'react-use';
 
 interface BarcodeScannerProps {
   onScanSuccess: (code: string) => void;
@@ -27,7 +26,9 @@ export default function BarcodeScanner({
   useEffect(() => {
     // モバイル判定
     const checkIsMobile = () => {
-      setIsMobile(window.innerWidth <= 640);
+      const userAgent = navigator.userAgent;
+      const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+      setIsMobile(window.innerWidth <= 640 || isIOS);
     };
     
     checkIsMobile();
@@ -56,31 +57,122 @@ export default function BarcodeScanner({
       isProcessingRef.current = false;
       setHasPermission(true);
       
-      // シンプルなカメラ制約（高速化重視）
-      const constraints = {
-        video: {
-          facingMode: 'environment', // 背面カメラ優先
-          width: { ideal: 640 }, // 固定解像度で高速化
-          height: { ideal: 480 },
-        }
-      };
+      // デバイス判定
+      const userAgent = navigator.userAgent;
+      const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+      const isMacOS = /Mac/.test(userAgent) && !isIOS;
+      const isHTTPS = location.protocol === 'https:';
       
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      // iOS Safari HTTPS要件チェック
+      if (isIOS && !isHTTPS) {
+        onScanError('iOS Safari ではHTTPS環境が必要です。https://で接続してください。');
+        return;
+      }
+      
+      // Apple デバイス対応のプログレッシブ制約
+      const constraintOptions = [
+        // iPhone/iPad 背面カメラ用
+        isIOS ? {
+          video: {
+            facingMode: { exact: 'environment' },
+            width: { ideal: 640, min: 320, max: 1280 },
+            height: { ideal: 480, min: 240, max: 720 },
+          }
+        } : null,
+        
+        // iPhone/iPad フロントカメラフォールバック
+        isIOS ? {
+          video: {
+            facingMode: 'user',
+            width: { ideal: 640, min: 320 },
+            height: { ideal: 480, min: 240 },
+          }
+        } : null,
+        
+        // Mac カメラ用（facingMode指定なし）
+        isMacOS ? {
+          video: {
+            width: { ideal: 640, min: 320, max: 1280 },
+            height: { ideal: 480, min: 240, max: 720 },
+          }
+        } : null,
+        
+        // 汎用制約（フォールバック）
+        {
+          video: {
+            width: { ideal: 640, min: 320 },
+            height: { ideal: 480, min: 240 },
+          }
+        },
+        
+        // 最終フォールバック
+        { video: true }
+      ].filter(Boolean); // null を除去
+      
+      let stream = null;
+      let constraintIndex = 0;
+      
+      // 制約を段階的に試行
+      while (!stream && constraintIndex < constraintOptions.length) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraintOptions[constraintIndex]);
+          console.log(`Constraint ${constraintIndex} succeeded:`, constraintOptions[constraintIndex]);
+        } catch (err) {
+          console.warn(`Constraint ${constraintIndex} failed:`, err);
+          constraintIndex++;
+          if (constraintIndex >= constraintOptions.length) {
+            throw err;
+          }
+        }
+      }
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        
+        // カメラ情報の取得
+        const videoTrack = stream.getVideoTracks()[0];
+        if (videoTrack) {
+          const settings = videoTrack.getSettings();
+          console.log('Camera settings:', settings);
+          
+          // iOS Safari 特有の設定
+          if (isIOS) {
+            videoRef.current.setAttribute('webkit-playsinline', 'true');
+            videoRef.current.setAttribute('playsinline', 'true');
+            // iOS Safari でビデオ再生を強制
+            videoRef.current.play().catch(console.error);
+          }
+        }
       }
 
-      // シンプルなZXing設定
+      // Apple デバイス最適化 ZXing設定
       readerRef.current = new BrowserMultiFormatReader();
       
+      // デバイス別読み取り間隔調整
+      if (isIOS) {
+        // iOS Safari は処理が重いため間隔を長く
+        readerRef.current.timeBetweenDecodingAttempts = 300;
+      } else if (isMacOS) {
+        // Mac Safari は中間的な設定
+        readerRef.current.timeBetweenDecodingAttempts = 200;
+      } else {
+        // その他デバイス
+        readerRef.current.timeBetweenDecodingAttempts = 150;
+      }
+      
       if (videoRef.current) {
-        // 高速スキャンコールバック（最小限）
+        // Apple デバイス最適化スキャンコールバック
         const handleScanResult = (result: any, error: any) => {
           // 既に処理中の場合は無視
           if (isProcessingRef.current) return;
-          if (!result) return;
-          if (error) return;
+          
+          if (!result) {
+            // "No MultiFormat Readers were able to detect the code" は正常動作
+            if (error && error.message !== 'No MultiFormat Readers were able to detect the code') {
+              console.log('ZXing error:', error.message);
+            }
+            return;
+          }
           
           const code = result.getText();
           console.log('バーコード検出:', code);
@@ -123,26 +215,62 @@ export default function BarcodeScanner({
         );
       }
       
-      // 10秒でタイムアウト（タイムアウト参照を保存）
+      // Apple デバイス用タイムアウト調整
+      const timeoutDuration = isIOS ? 15000 : isMacOS ? 12000 : 10000; // iOS:15秒, Mac:12秒, その他:10秒
       timeoutRef.current = setTimeout(() => {
-        if (!isProcessingRef.current) { // 成功処理中でない場合のみタイムアウト処理
-          onScanError('読み取りタイムアウト。再度お試しください。');
+        if (!isProcessingRef.current) {
+          const deviceHint = isIOS 
+            ? 'カメラをバーコードに近づけて、明るい場所で再試行してください。'
+            : isMacOS 
+            ? 'バーコードとの距離を調整して再試行してください。'
+            : '再度お試しください。';
+          onScanError(`読み取りタイムアウト（${timeoutDuration/1000}秒）。${deviceHint}`);
           stopScanning();
         }
-      }, 10000);
+      }, timeoutDuration);
       
     } catch (error) {
       console.error('カメラエラー:', error);
       setHasPermission(false);
       
       if (error instanceof Error) {
+        // Apple デバイス特有のエラーハンドリング
+        const userAgent = navigator.userAgent;
+        const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+        const isMacOS = /Mac/.test(userAgent) && !isIOS;
+        const isHTTPS = location.protocol === 'https:';
+        
         if (error.name === 'NotAllowedError') {
-          onScanError('カメラアクセスが拒否されました。');
+          if (isIOS && !isHTTPS) {
+            onScanError('iOS Safari ではHTTPS環境が必要です。https://で接続してください。');
+          } else if (isIOS) {
+            onScanError('カメラアクセスが拒否されました。Safari の設定 > Webサイト > カメラ でアクセスを許可してください。');
+          } else if (isMacOS) {
+            onScanError('カメラアクセスが拒否されました。システム環境設定 > セキュリティとプライバシー > カメラ でSafariを許可してください。');
+          } else {
+            onScanError('カメラアクセスが拒否されました。ブラウザ設定でカメラアクセスを許可してください。');
+          }
         } else if (error.name === 'NotFoundError') {
-          onScanError('カメラが見つかりません。');
+          if (isIOS) {
+            onScanError('カメラが見つかりません。デバイスのカメラが利用可能か確認してください。');
+          } else if (isMacOS) {
+            onScanError('カメラが見つかりません。他のアプリケーションでカメラを使用していないか確認してください。');
+          } else {
+            onScanError('カメラが見つかりません。デバイスにカメラが接続されているか確認してください。');
+          }
+        } else if (error.name === 'OverconstrainedError') {
+          onScanError('カメラ設定エラー。このデバイスはカメラ機能をサポートしていません。');
+        } else if (error.name === 'NotReadableError') {
+          if (isIOS || isMacOS) {
+            onScanError('カメラが他のアプリケーションで使用中です。他のアプリを閉じてから再試行してください。');
+          } else {
+            onScanError('カメラが他のアプリケーションで使用中です。');
+          }
         } else {
-          onScanError('カメラエラーが発生しました。');
+          onScanError(`カメラエラー: ${error.message}`);
         }
+      } else {
+        onScanError('予期しないエラーが発生しました。ページを再読み込みしてお試しください。');
       }
     }
   }, [onScanSuccess, onScanError]);
@@ -210,6 +338,17 @@ export default function BarcodeScanner({
               playsInline
               muted
               className="barcode-video"
+              onLoadedMetadata={() => {
+                // iOS Safari 特有の処理
+                const userAgent = navigator.userAgent;
+                const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+                if (videoRef.current && isIOS) {
+                  videoRef.current.play().catch(console.error);
+                }
+              }}
+              onError={(e) => {
+                console.error('Video error:', e);
+              }}
             />
             <div className="barcode-scanner-frame"></div>
             {/* フォールバック枠（CSSが効かない場合用） */}
