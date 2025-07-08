@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { Product, PurchaseItem, PurchaseResponse } from '@/types';
+import { API_CONFIG } from '@/config';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import TaxModal from '@/components/TaxModal';
 import './globals.css';
@@ -36,7 +37,11 @@ export default function Home() {
       const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL!;
       const apiUrl = `${apiBaseUrl}/products/${searchCode}`;
       
-      const response = await axios.get(apiUrl);
+      const response = await axios.get(apiUrl, {
+        headers: {
+          'X-API-Key': API_CONFIG.apiKey
+        }
+      });
       
       if (response.data) {
         setCurrentProduct(response.data);
@@ -143,7 +148,8 @@ export default function Home() {
       
       const response = await axios.post<PurchaseResponse>(apiUrl, purchaseData, {
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-API-Key': API_CONFIG.apiKey
         }
       });
 
